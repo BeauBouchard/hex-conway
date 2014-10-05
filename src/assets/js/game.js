@@ -4,8 +4,8 @@
  */
 function GAME() {
     this.grid;
-	this.gamestate   = 0; 
-	this.organisms   = [];
+    this.gamestate   = 0; 
+    this.organisms   = [];
     this.gridheight  = 600;
     this.gridwidth   = 600;
     this.seedCount   = 20; // initial number of seeds that will be dropped
@@ -22,7 +22,7 @@ GAME.prototype = {
     	console.log("Initializing Game");
     	this.grid = new MAP(this.gridwidth,this.gridheight,this.tilesize,this.seedCount);
     	this.grid.generate();
-
+        this.setupButtons();
         game.start();
         //this.grid.initCircle();
     },
@@ -31,10 +31,18 @@ GAME.prototype = {
     	//this.setupLife(this.seedCount);
         this.active = true;
         this.setupLife(500);
-        this.loop();
     },
     restart: function() {
-
+        this.clear();
+        this.setupLife(500);
+    },
+    clear: function () {
+        for (var row = 0; row < this.grid.getMaxRows(); row++) {
+            for (var column = 0; column < this.grid.getMaxColumns(); column++) {
+                this.destroyLife(row,column);
+            }
+        }
+        this.gameTime = 0;
     },
     changeTile: function (numRow, numCol){
         //this.grid.tileset[numRow][numCol].setFillStyle("blue");
@@ -46,41 +54,45 @@ GAME.prototype = {
             this.createLife(getRandomInt(0, this.grid.getMaxRows()),getRandomInt(0, this.grid.getMaxColumns()))
         } 
     },
+    setupButtons: function () {
+        var step = document.getElementById("step");
+        var restart = document.getElementById("restart");
+        var clear = document.getElementById("clear");
+        var spawn10 = document.getElementById("spawn10");
+        var spawn5 = document.getElementById("spawn5");
+        var spawn2 = document.getElementById("spawn2");
+
+        step.onclick = function(){ game.update(); };
+        restart.onclick = function(){ game.restart(); }
+        clear.onclick = function(){ game.clear(); }
+        spawn10.onclick = function(){ game.setupLife(1000); }
+        spawn5.onclick = function(){ game.setupLife(500); }
+        spawn2.onclick = function(){ game.setupLife(200); }
+    },
     clicked: function (row,col) {
-        this.update();
+        this.createLife(row,col);
     },
     update: function () {
         console.log("game.update");
+        if(this.gameTime >= 25){ this.restart(); }
         for (var row = 0; row < this.grid.getMaxRows(); row++) {
             for (var column = 0; column < this.grid.getMaxColumns(); column++) {
-                //console.log("game.update loop");
-                //check if tile/cell is alive. 
                 var currentTile = this.grid.getTile(row,column);
-                var alive = this.checkAlive(row,column);
-                //check the number of living neighbors.
-                var living = this.grid.getLivingNeighbors(currentTile);
-                //apply rules  3,5/2 and 3,5,6/2 
-
+                var alive = this.checkAlive(row,column);//check if tile/cell is alive. 
+                var living = this.grid.getLivingNeighbors(currentTile);//check the number of living neighbors.
+                //apply rules  3,5/2 ~~3,5,6/2~~
                 if(alive && living < this.livingFloor){
-                    // result = false; //Dies as if caused by under-population.
-                   //console.log("Rule1");
-                    this.destroyLife(row,column);
+                    this.destroyLife(row,column); //Dies as if caused by under-population.
                 } if(alive && living > this.livingCeil) {
-                    // result = false; //Dies as if by overcrowding.
-                    this.destroyLife(row,column);
-                    //console.log("Rule2");
+                    this.destroyLife(row,column); //Dies as if by overcrowding.
                 }  if(alive && (living == 2)) {
-                    // result = true; //lives on to the next generation.
-                    //console.log("Rule3");
+                    //lives on to the next generation.
                 } if(alive == false && (living == 3 || living == 5 )) {
-                    this.createLife(row,column);
-                    // result = true;  //becomes a live cell, as if by reproduction.
-                    //console.log("Rule4");
+                    this.createLife(row,column); //becomes a live cell, as if by reproduction.
                 } 
             }
         }
         this.gameTime++;
-        //sleep(game.gameSpeed, this.loop);
     },
     createLife: function (row,col) {
         if(this.checkAlive(row,col)){
@@ -100,17 +112,10 @@ GAME.prototype = {
         this.grid.setTile(row,col,tile);
     },
     checkAlive: function (row,col) {
-        //variable
-        //console.log("GAME.checkAlive");
-        //var cell = new CELL(0);
         if(this.grid.tileSet[row][col].getOccupied()){
             return true;
         }
         return false;
-    }, 
-    loop: function() {
-        //sleep(game.gameSpeed, this.update);
-
     }
 }
 
@@ -118,9 +123,8 @@ GAME.prototype = {
 
 function CELL(lifeid) {
 	this.id = lifeid;
-    this.colorchart = ['#FF4475', '#44FF05', '#4444FF'];
+    this.colorchart = ['#DB0148', '#5D9E9A', '#C8DCBF' ];
     this.color = this.colorchart[this.id];
-    //console.log("Organism created, type " + this.id + ", color is "+this.color );
     this.x;
     this.y;
     this.alive = false;
