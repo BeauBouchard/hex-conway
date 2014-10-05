@@ -1,160 +1,276 @@
-/* 
- *  game.js
- *  Houses game logic for life
+/**
+ * Game of Life Attempt
  */
-function GAME() {
-    this.grid;
-    this.gamestate   = 0; 
-    this.organisms   = [];
-    this.gridheight  = 600;
-    this.gridwidth   = 600;
-    this.seedCount   = 20; // initial number of seeds that will be dropped
-    this.tilesize    = Math.sqrt((this.gridwidth^2)+(this.gridheight^2))/(this.seedCount/5);
-    this.gameTime    = 0;
-    this.gameSpeed   = 1000;
-    this.active      = false;
-    this.livingFloor        = 2;
-    this.livingCeil         = 4;
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+};
+
+function sleep(millis, callback) {
+    setTimeout(function()
+            { callback(); }
+    , millis);
+};
+
+
+function MAP(mapwidth,mapheight,tilesize) { 
+    /**
+     * There are 6 neighbors for every tile, the direction input is below:
+     *      __
+     *   __/  \__
+     *  /  \_3/  \
+     *  \_2/  \4_/
+     *  / 1\__/5 \
+     *  \__/0 \__/
+     *     \__/
+     */
+    this.nDelta = {
+        even: [ [1,  0], [ 0, -1], [-1, -1],
+                [-1,  0], [-1, 1], [ 0, 1] ],
+             //[1,  0], [1, -1], [ 0, -1],[-1,  0], [-1, 1], [ 0, 1]
+        odd: [ [1,  0], [1, -1], [ 0, -1],
+               [-1,  0], [ 0, 1], [1, 1] ]
+    }
+    this.mapwidth           = mapwidth;
+    this.mapheight          = mapheight;
+    this.tilesize           = tilesize;
+    this.tileWidth          = this.tilesize * 2;
+    this.tileHeight         = Math.sqrt(3)/2 * this.tileWidth; 
+    this.verticalSpacing    = this.tileHeight;
+    this.horizontalSpacing  = 3/4 * this.tileWidth;
+    this.maxRows            = Math.floor((this.mapheight / this.verticalSpacing)) - 1;
+    this.maxColumns         = Math.floor((this.mapwidth / this.horizontalSpacing)) - 1;
+    //console.log(this.height);
+    this.tileSet= new Array(this.maxRows);
+    var row, column;
+    for (row = 0; row < this.maxRows; row++) {
+        this.tileSet[row] = new Array(this.maxColumns);
+        for (column = 0; column < this.maxColumns; column++) {
+            this.tileSet[row][column] = new TILE(this.tilesize, row, column);
+        }
+    }
 }
 
-GAME.prototype = {
-    initialize: function() {
-    	console.log("Initializing Game");
-    	this.grid = new MAP(this.gridwidth,this.gridheight,this.tilesize,this.seedCount);
-    	this.grid.generate();
-        this.setupButtons();
-        game.start();
-        //this.grid.initCircle();
-    },
-    start: function() {
-    	console.log("Starting Game");
-    	//this.setupLife(this.seedCount);
-        this.active = true;
-        this.setupLife(500);
-    },
-    restart: function() {
-        this.clear();
-        this.setupLife(500);
-    },
-    clear: function () {
-        for (var row = 0; row < this.grid.getMaxRows(); row++) {
-            for (var column = 0; column < this.grid.getMaxColumns(); column++) {
-                this.destroyLife(row,column);
-            }
+MAP.prototype = { 
+    generate: function () {
+        console.log("MAP.generate");
+        for(var tileid = 0; tileid<=((this.maxRows)*(this.maxColumns));tileid++){
+            var row = tileid%this.maxRows;
+            var column = tileid%this.maxColumns;
+            //console.log("Row:"+row+" Column:"+column+"");
+            this.tileSet[row][column].setid(tileid);
+            this.tileSet[row][column].draw();
         }
-        this.gameTime = 0;
     },
-    changeTile: function (numRow, numCol){
-        //this.grid.tileset[numRow][numCol].setFillStyle("blue");
-        this.grid.tileset[numRow][numCol].clear();
-    },
-    setupLife: function (numLife) {
-        console.log("Setting up game with "+numLife+" living Organisms");
-        for(var i = 1; i <= numLife; i++){
-            this.createLife(getRandomInt(0, this.grid.getMaxRows()),getRandomInt(0, this.grid.getMaxColumns()))
-        } 
-    },
-    setupButtons: function () {
-        var step = document.getElementById("step");
-        var restart = document.getElementById("restart");
-        var clear = document.getElementById("clear");
-        var spawn10 = document.getElementById("spawn10");
-        var spawn5 = document.getElementById("spawn5");
-        var spawn2 = document.getElementById("spawn2");
+    initCircle: function () {
+        this.tileCount          = 6;
+        console.log("MAP.initCircle");
+        console.log("generating: " + this.tileCount + " rings of tiles");
+        // size is the size of the hex from corner to another corner across. 
+        var xCenter     = this.mapwidth / 2;
+        var yCenter     = this.mapheight / 2;
+        var tileid = 0;
+        //console.log("MaxRows:"+this.maxRows+" MaxColumns:"+this.maxColumns+ " "+yCenter );
+        for (var q = -this.tileCount; q <= this.tileCount; q++) {
+            for (var r = -this.tileCount; r <= this.tileCount; r++) {
+                if ((q < 0 && r < 0) || (q > 0 && r > 0)) {
+                    if ((Math.abs(q) + Math.abs(r)) > this.tileCount) {
+                        continue;
+                    }
+                }
+                //console.log("MAP.newtile");
+                var x = this.tilesize * 3/2 * r;
+                var y = this.tilesize * Math.sqrt(3) * (q + r/2);
 
-        step.onclick = function(){ game.update(); };
-        restart.onclick = function(){ game.restart(); }
-        clear.onclick = function(){ game.clear(); }
-        spawn10.onclick = function(){ game.setupLife(1000); }
-        spawn5.onclick = function(){ game.setupLife(500); }
-        spawn2.onclick = function(){ game.setupLife(200); }
-    },
-    clicked: function (row,col) {
-        this.createLife(row,col);
-    },
-    update: function () {
-        console.log("game.update");
-        if(this.gameTime >= 25){ this.restart(); }
-        for (var row = 0; row < this.grid.getMaxRows(); row++) {
-            for (var column = 0; column < this.grid.getMaxColumns(); column++) {
-                var currentTile = this.grid.getTile(row,column);
-                var alive = this.checkAlive(row,column);//check if tile/cell is alive. 
-                var living = this.grid.getLivingNeighbors(currentTile);//check the number of living neighbors.
-                //apply rules  3,5/2 ~~3,5,6/2~~
-                if(alive && living < this.livingFloor){
-                    this.destroyLife(row,column); //Dies as if caused by under-population.
-                } if(alive && living > this.livingCeil) {
-                    this.destroyLife(row,column); //Dies as if by overcrowding.
-                }  if(alive && (living == 2)) {
-                    //lives on to the next generation.
-                } if(alive == false && (living == 3 || living == 5 )) {
-                    this.createLife(row,column); //becomes a live cell, as if by reproduction.
-                } 
+                var row = tileid%this.maxRows;
+                var column = tileid%this.maxColumns;
+                //console.log("Row:"+row+" Column:"+column+" X:"+(x + xCenter) + " Y:" + (y + yCenter));
+                //alert("");
+                this.tileSet[row][column].initialize(tileid,x + xCenter, y + yCenter);
+                this.tileSet[row][column].draw();
+                //this.tileset.push(atile);
+                tileid++;
             }
         }
-        this.gameTime++;
+        this.drawMap();
+        return;
     },
-    createLife: function (row,col) {
-        if(this.checkAlive(row,col)){
-            //already filled with life
+    getTile: function(row,col) {
+        return this.tileSet[row][col];
+    },
+    getMaxRows: function() {
+        return this.maxRows;
+    },
+    getMaxColumns: function() {
+        return this.maxColumns;
+    },
+    setTile: function(row,col, tile) {
+        this.tileSet[row][col] = tile;
+    },
+    /**
+     * There are 6 neighbors for every tile, the direction input is below:
+     *      __
+     *   __/  \__
+     *  /  \_3/  \
+     *  \_2/  \4_/
+     *  / 1\__/5 \
+     *  \__/0 \__/
+     *     \__/
+     */
+    getNeighbor: function(tile,direction) {
+        var parity = tile.getColumn() & 1 ? 'odd' : 'even'; //checks if row is even or odd, assigns
+        var delta = this.nDelta[parity][direction]; // returns a array, with 0 being row delta, and 1 column delta
+        //if(direction == 2){ console.log("parity:"+parity);}
+
+        var newRow = tile.getRow() + delta[0];
+        var newCol = tile.getColumn() + delta[1];
+        //console.log("Row:" + tile.getRow() + " Col:" +tile.getColumn());
+        //console.log(" direction:" + direction +"parity:"+ parity + " delta[0]:" + delta[0] + " delta[1]:" + delta[1] );
+        if(newRow < 0 || newCol < 0 || newRow >= this.maxRows || newCol >= this.maxColumns)         {
+            //skip
+            return false;
         } else {
-            var tile = this.grid.getTile(row,col);
-            var od = tile.getid(); 
-            var organism = new CELL(getRandomInt(0, 3));
-            var neTile = organism.initialize(row,col,tile);
-            this.grid.setTile(row,col,neTile);
+            return this.tileSet[tile.getRow() + delta[0]][ tile.getColumn() + delta[1]];
         }
-
+        
     },
-    destroyLife: function (row,col) {
-        var tile = this.grid.getTile(row,col);
-        tile.reset();
-        this.grid.setTile(row,col,tile);
-    },
-    checkAlive: function (row,col) {
-        if(this.grid.tileSet[row][col].getOccupied()){
-            return true;
+    getLivingNeighbors: function(tile) {
+        var count = 0; //living Neighbor count
+        var parity = tile.getColumn() & 1 ? 'odd' : 'even';
+        for(var i = 0; i <6; i++){
+            var delta = this.nDelta[parity][i];
+            //console.log("Delta: "+delta + " Parity:" + parity);
+            var newRow = tile.getRow() + delta[0];
+            var newCol = tile.getColumn() + delta[1];
+            //console.log("newRow: "+newRow + " newCol:" + newCol);
+            if(newRow < 0 || newCol < 0 || newRow >= this.maxRows || newCol >= this.maxColumns)         {
+                //skip
+            } else  {
+                var tiletocheck = this.tileSet[newRow][newCol].getOccupied();
+                if(tiletocheck){
+                    count++;
+                }
+            }
+        
         }
-        return false;
+        return count;
     }
 }
 
 
-
-function CELL(lifeid) {
-	this.id = lifeid;
-    this.colorchart = ['#DB0148', '#5D9E9A', '#C8DCBF' ];
-    this.color = this.colorchart[this.id];
-    this.x;
-    this.y;
-    this.alive = false;
+function TILE(tilesize, row, column) {
+    this.cell;
+    this.row = row;
+    this.column = column;
+    this.tag = '';
+    this.data = {};
+    this.nSides  = 6; // ma sides
+    this.size    = tilesize; //size corner to corner
+    this.centerX = 0;
+    this.centerY = 0;
+    this.display = false;
+    this.id      = 0;
+    this.region;
+    this.x = this.size * 3/2 * (1 + column);
+    this.y = this.size * Math.sqrt(3) * (1 + row + 0.5 * (column&1));
+    this.strokeStyle = "black";
+    this.fillStyle = '#323232';
+    this.lineWidth = 1;
+    this.occupied = false;
 }
 
-CELL.prototype = {
-    initialize: function(y,x,tile) {
-        this.x = x;
-        this.y = y;
-        this.alive = true;
-        tile.setFillStyle(this.color);
-        return this.redraw(tile);
+TILE.prototype = {
+    initialize: function(id) {
+        this.id = id;
     },
-    getColor: function() {
-    	return this.color;
+    initialize: function(id,centerX,centerY)  {
+        this.id = id;
+        this.x = centerX;
+        this.y = centerY;
     },
-    giveBirth: function() {
-        //callback.createLife(this.id);
+    draw: function() {
+        if(this.display === true) {
+            //clear tile, then redraw
+            this.clear();
+        } else {
+            var xmlns = "http://www.w3.org/2000/svg";
+            var svgspace = document.getElementById("gamesvg");
+            var polygon = document.createElementNS(xmlns,'polygon');
+                polygon.setAttributeNS(null, 'id', 'polygon'+this.id);
+                polygon.setAttributeNS(null, 'row', this.row);
+                polygon.setAttributeNS(null, 'column', this.column);
+                polygon.setAttributeNS(null, 'stroke-width', this.lineWidth );
+                polygon.setAttributeNS(null, 'fill',this.fillStyle);
+                polygon.setAttributeNS(null, 'stroke',this.strokeStyle);
+                polygon.setAttributeNS(null, 'opacity', 1); 
+            
+            var pointString = "";
+            //draws the element based on how many sides
+            for( var i = 0; i <= this.nSides; i++) {
+                var angle = 2 * Math.PI / this.nSides * i;
+                //Corner x and y, draws each side/cornerpoint
+                var cornX = this.x + this.size * Math.cos(angle);
+                var cornY = this.y + this.size * Math.sin(angle);
+                // if(checkneighbor) {
+                if( i == 0) {
+                    pointString = " " + cornX + "," + cornY;
+                } else {
+                    pointString += " " + cornX + "," + cornY;
+                }
+                // }
+            }
+            polygon.setAttributeNS(null, 'points', pointString);
+            polygon.onclick = function(){ game.clicked(this.getAttribute("row"),this.getAttribute("column")) }
+            var gTile = document.createElementNS(xmlns,'g');
+                gTile.setAttributeNS(null, 'id','tile' + this.id);
+                gTile.appendChild(polygon);
+            svgspace.appendChild(gTile);
+            this.display = true;
+
+        }
+    }, 
+    clear: function() {
+        if(this.display === true) {
+            var svgspace = document.getElementById("gamesvg");
+            var polylist = svgspace.querySelectorAll("polygon"+this.id);
+            //polylist.getElementById("polygon"+this.id);
+            this.display = false;
+        }
     },
-    move: function() {
-        //a toroidal array to wrap left to right, up to down
+    reset: function () {
+        //set to default starting white tile
+
+        this.strokeStyle = "black";
+        this.fillStyle = '#323232';
+        this.lineWidth = 1;
+        this.occupied = false;
+        this.cell = false;
+        this.clear();
+        this.draw();
+
     },
-    redraw: function (tile){
-        var netile = tile;
-        netile.clear();
-        netile.draw();
-        netile.occupy(this);
-        return netile;
+    occupy: function (cell) {
+        this.setOccupied(true);
+        this.cell = cell;
     },
-    check: function (row,col){  
+    toString: function() {
+        return this.row + ', ' + this.column;
     }
 }
 
+TILE.prototype.setid     = function(newid)     { this.id     = newid;};
+TILE.prototype.setX      = function(newX)     { this.x     = newX;};
+TILE.prototype.setY      = function(newY)     { this.y     = newY;};
+TILE.prototype.setFillStyle    = function(newFill)  { this.fillStyle   = newFill;};
+TILE.prototype.setStrokeStyle  = function(newStroke){ this.strokeStyle = newStroke;};
+TILE.prototype.setLineWidth    = function(newWidth) { this.lineWidth   = newWidth;};
+TILE.prototype.setOccupied     = function(newOccupied) {this.occupied = newOccupied; };
+TILE.prototype.getid      = function() { return this.id;};
+TILE.prototype.getX      = function() { return this.x;};
+TILE.prototype.getY      = function() { return this.y;};
+TILE.prototype.getColumn      = function() { return this.column;};
+TILE.prototype.getRow      = function() { return this.row;};
+TILE.prototype.getfillStyle    = function() { return this.fillStyle;};
+TILE.prototype.getstrokeStyle  = function() { return this.strokeStyle;};
+TILE.prototype.getlineWidth    = function() { return this.lineWidth;};
+TILE.prototype.getOccupied     = function() { return this.occupied; }
