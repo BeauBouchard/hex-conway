@@ -4,13 +4,30 @@
     <title></title>
     <meta name="descrption" content="simple 2d game" />
     <meta name="viewport" content="width=device-width" />
-    <!--<link rel="stylesheet" href="assets/css/main.css" />-->
+    <link rel="stylesheet" href="assets/css/main.css" />
   </head>
   <body>
     <div id="overlay">
+      <h2>A Game of <span class='life'>Life</span></h2>
       <div id="game">
         <svg id="gamesvg" height="600" width="600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         </svg>
+      </div>
+      <ul>
+          <li id="step"><span class='life'>Step</span></li>
+          <li id="restart">Restart</li>
+          <li id="clear">Clear</li>
+          <li id="spawn10">Spawn 1000</li>
+          <li id="spawn5">Spawn 500</li>
+          <li id="spawn2">Spawn 200</li>
+      </ul>
+      <div>
+        <p>Hexagon implementation of <a href="http://en.wikipedia.org/wiki/Conway's_Game_of_Life">Conway's game of life</a>. </p>
+        <p>Rules:</p>
+        <p>A Cell dies if it has less than 2 neighbors, as if caused by under-population.</p>
+        <p>A Cell dies if it has more than 4 neighbors as if by overcrowding.</p>
+        <p>A Cell with 4 neighbors lives on to the next generation. </p>
+        <p>An empty tile becomes a live cell if it has 3 or 5 neighbors as if by reproduction.</p>
       </div>
     </div>
     <script type="text/javascript" src="assets/js/game.js"></script>
