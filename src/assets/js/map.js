@@ -1,5 +1,5 @@
 /**
- * Game of Life Attempt
+ * Game of Life 
  */
 
 function getRandomInt(min, max) {
@@ -11,7 +11,6 @@ function sleep(millis, callback) {
             { callback(); }
     , millis);
 };
-
 
 function MAP(mapwidth,mapheight,tilesize) { 
     /**
@@ -27,7 +26,6 @@ function MAP(mapwidth,mapheight,tilesize) {
     this.nDelta = {
         even: [ [1,  0], [ 0, -1], [-1, -1],
                 [-1,  0], [-1, 1], [ 0, 1] ],
-             //[1,  0], [1, -1], [ 0, -1],[-1,  0], [-1, 1], [ 0, 1]
         odd: [ [1,  0], [1, -1], [ 0, -1],
                [-1,  0], [ 0, 1], [1, 1] ]
     }
@@ -40,7 +38,6 @@ function MAP(mapwidth,mapheight,tilesize) {
     this.horizontalSpacing  = 3/4 * this.tileWidth;
     this.maxRows            = Math.floor((this.mapheight / this.verticalSpacing)) - 1;
     this.maxColumns         = Math.floor((this.mapwidth / this.horizontalSpacing)) - 1;
-    //console.log(this.height);
     this.tileSet= new Array(this.maxRows);
     var row, column;
     for (row = 0; row < this.maxRows; row++) {
@@ -50,14 +47,12 @@ function MAP(mapwidth,mapheight,tilesize) {
         }
     }
 }
-
 MAP.prototype = { 
     generate: function () {
         console.log("MAP.generate");
         for(var tileid = 0; tileid<=((this.maxRows)*(this.maxColumns));tileid++){
             var row = tileid%this.maxRows;
             var column = tileid%this.maxColumns;
-            //console.log("Row:"+row+" Column:"+column+"");
             this.tileSet[row][column].setid(tileid);
             this.tileSet[row][column].draw();
         }
@@ -70,7 +65,6 @@ MAP.prototype = {
         var xCenter     = this.mapwidth / 2;
         var yCenter     = this.mapheight / 2;
         var tileid = 0;
-        //console.log("MaxRows:"+this.maxRows+" MaxColumns:"+this.maxColumns+ " "+yCenter );
         for (var q = -this.tileCount; q <= this.tileCount; q++) {
             for (var r = -this.tileCount; r <= this.tileCount; r++) {
                 if ((q < 0 && r < 0) || (q > 0 && r > 0)) {
@@ -78,17 +72,12 @@ MAP.prototype = {
                         continue;
                     }
                 }
-                //console.log("MAP.newtile");
                 var x = this.tilesize * 3/2 * r;
                 var y = this.tilesize * Math.sqrt(3) * (q + r/2);
-
                 var row = tileid%this.maxRows;
                 var column = tileid%this.maxColumns;
-                //console.log("Row:"+row+" Column:"+column+" X:"+(x + xCenter) + " Y:" + (y + yCenter));
-                //alert("");
                 this.tileSet[row][column].initialize(tileid,x + xCenter, y + yCenter);
                 this.tileSet[row][column].draw();
-                //this.tileset.push(atile);
                 tileid++;
             }
         }
@@ -107,32 +96,24 @@ MAP.prototype = {
     setTile: function(row,col, tile) {
         this.tileSet[row][col] = tile;
     },
-    /**
-     * There are 6 neighbors for every tile, the direction input is below:
-     *      __
-     *   __/  \__
-     *  /  \_3/  \
-     *  \_2/  \4_/
-     *  / 1\__/5 \
-     *  \__/0 \__/
-     *     \__/
-     */
     getNeighbor: function(tile,direction) {
         var parity = tile.getColumn() & 1 ? 'odd' : 'even'; //checks if row is even or odd, assigns
         var delta = this.nDelta[parity][direction]; // returns a array, with 0 being row delta, and 1 column delta
-        //if(direction == 2){ console.log("parity:"+parity);}
-
         var newRow = tile.getRow() + delta[0];
         var newCol = tile.getColumn() + delta[1];
-        //console.log("Row:" + tile.getRow() + " Col:" +tile.getColumn());
-        //console.log(" direction:" + direction +"parity:"+ parity + " delta[0]:" + delta[0] + " delta[1]:" + delta[1] );
-        if(newRow < 0 || newCol < 0 || newRow >= this.maxRows || newCol >= this.maxColumns)         {
-            //skip
-            return false;
-        } else {
-            return this.tileSet[tile.getRow() + delta[0]][ tile.getColumn() + delta[1]];
+        if(newRow < 0){
+            newRow =this.maxRows -1;
+        } 
+        if (newCol < 0){
+            newCol = this.maxColumns -1;
+        } 
+        if (newRow > this.maxRows ){
+            newRow = 0;
         }
-        
+        if ( newCol > this.maxColumns){
+            newCol = 0;
+        } 
+            return this.tileSet[tile.getRow() + delta[0]][ tile.getColumn() + delta[1]];
     },
     getLivingNeighbors: function(tile) {
         var count = 0; //living Neighbor count
@@ -174,7 +155,7 @@ function TILE(tilesize, row, column) {
     this.x = this.size * 3/2 * (1 + column);
     this.y = this.size * Math.sqrt(3) * (1 + row + 0.5 * (column&1));
     this.strokeStyle = "black";
-    this.fillStyle = 'white';
+    this.fillStyle = '#323232';
     this.lineWidth = 1;
     this.occupied = false;
 }
@@ -211,13 +192,11 @@ TILE.prototype = {
                 //Corner x and y, draws each side/cornerpoint
                 var cornX = this.x + this.size * Math.cos(angle);
                 var cornY = this.y + this.size * Math.sin(angle);
-                // if(checkneighbor) {
                 if( i == 0) {
                     pointString = " " + cornX + "," + cornY;
                 } else {
                     pointString += " " + cornX + "," + cornY;
                 }
-                // }
             }
             polygon.setAttributeNS(null, 'points', pointString);
             polygon.onclick = function(){ game.clicked(this.getAttribute("row"),this.getAttribute("column")) }
@@ -241,7 +220,7 @@ TILE.prototype = {
         //set to default starting white tile
 
         this.strokeStyle = "black";
-        this.fillStyle = 'white';
+        this.fillStyle = '#323232';
         this.lineWidth = 1;
         this.occupied = false;
         this.cell = false;
